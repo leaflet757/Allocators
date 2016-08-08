@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Allocators", "Allocators\Allocators.vcxproj", "{BA85530C-09E2-4D7C-957F-B9F88B007E6E}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Allocator_Test", "Allocator_Test\Allocator_Test.vcxproj", "{1374314A-C1E2-4359-BA2A-CCC4737A9B2B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Allocators Library", "Allocators Library\Allocators Library.vcxproj", "{F5C18F16-9B74-4664-AF16-07C75DBB0133}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,14 +15,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Debug|x64.ActiveCfg = Debug|x64
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Debug|x64.Build.0 = Debug|x64
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Debug|x86.ActiveCfg = Debug|Win32
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Debug|x86.Build.0 = Debug|Win32
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Release|x64.ActiveCfg = Release|x64
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Release|x64.Build.0 = Release|x64
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Release|x86.ActiveCfg = Release|Win32
-		{BA85530C-09E2-4D7C-957F-B9F88B007E6E}.Release|x86.Build.0 = Release|Win32
 		{1374314A-C1E2-4359-BA2A-CCC4737A9B2B}.Debug|x64.ActiveCfg = Debug|x64
 		{1374314A-C1E2-4359-BA2A-CCC4737A9B2B}.Debug|x64.Build.0 = Debug|x64
 		{1374314A-C1E2-4359-BA2A-CCC4737A9B2B}.Debug|x86.ActiveCfg = Debug|Win32
@@ -31,6 +23,14 @@ Global
 		{1374314A-C1E2-4359-BA2A-CCC4737A9B2B}.Release|x64.Build.0 = Release|x64
 		{1374314A-C1E2-4359-BA2A-CCC4737A9B2B}.Release|x86.ActiveCfg = Release|Win32
 		{1374314A-C1E2-4359-BA2A-CCC4737A9B2B}.Release|x86.Build.0 = Release|Win32
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Debug|x64.ActiveCfg = Debug|x64
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Debug|x64.Build.0 = Debug|x64
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Debug|x86.ActiveCfg = Debug|Win32
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Debug|x86.Build.0 = Debug|Win32
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Release|x64.ActiveCfg = Release|x64
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Release|x64.Build.0 = Release|x64
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Release|x86.ActiveCfg = Release|Win32
+		{F5C18F16-9B74-4664-AF16-07C75DBB0133}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
