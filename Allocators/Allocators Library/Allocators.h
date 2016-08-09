@@ -39,7 +39,7 @@ namespace allocs
 		void clear();
 
 	private:
-		std::size_t m_stackSizeBytes;		// Size in bytes of the stack.
+		const std::size_t m_stackSizeBytes;	// Size in bytes of the stack.
 		std::size_t m_sizeBytesRemaining;	// Remaining bytes in the stack.
 		Marker m_stackBottom;				// Stack Marker.
 		Marker m_next;						// Top of the stack.
@@ -47,10 +47,54 @@ namespace allocs
 
 	class de_stack_allocator
 	{
+	public:
+		// Constructs a stack_allocator with the given total size.
+		explicit de_stack_allocator(const std::size_t stackSizeBytes);
 
+		// Allocates a new block of data of given size from the designated
+		// fill direction of the stack. If the fillBottom parameter is
+		// not passed, then this allocator functions as a regular stack
+		// allocator.
+		void* alloc(unsigned int sizeBytes, bool fillBottom = true);
+
+		// Returns the Marker to the address the stack is stored.
+		//const Marker getStackMarker() { return m_stackBottom; }
+
+		// Returns a Marker to the top of the stack.
+		//const Marker getStackTop() { return m_next; }
+
+		// Returns the total capacity of the stack in size of bytes.
+		const std::size_t getStackCapacity() { return m_stackSizeBytes; }
+
+		// Returns the total remaining bytes within the stack.
+		const std::size_t getStackSize() { return m_sizeBytesRemaining; }
+
+		// Rolls the stack back to the given marker.
+		//void freeToMarker(Marker marker);
+
+		// Clears the entire stack.
+		void clear();
+
+	private:
+		const std::size_t m_stackSizeBytes;	// Size in bytes of the stack.
+		std::size_t m_sizeBytesRemaining;	// Remaining bytes in the stack.
+		Marker m_stackBottom;				// Stack Marker.
+		Marker m_nextBottom;				// Next Free Slot on Bottom of Stack.
+		Marker m_stackTop;					// Stack Top Marker.
+		Marker m_nextTop;					// Next Free Slot on Top of Stakc.
 	};
 
 	class pool_allocator
+	{
+
+	};
+
+	class linear_allocator
+	{
+
+	};
+
+	class scope_stack_allocator
 	{
 
 	};
