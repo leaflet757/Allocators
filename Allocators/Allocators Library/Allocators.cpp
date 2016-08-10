@@ -4,7 +4,7 @@
 // -------------------------------------------------------
 
 allocs::stack_allocator::stack_allocator(const std::size_t stackSizeBytes) :
-	m_stackSizeBytes(stackSizeBytes),
+	m_capacityBytes(stackSizeBytes),
 	m_sizeBytesRemaining(stackSizeBytes)
 {
 	// Create a new stack of given stackSize and allocate memory;
@@ -13,6 +13,12 @@ allocs::stack_allocator::stack_allocator(const std::size_t stackSizeBytes) :
 	// Set the stack marker and update the top of the stack.
 	m_stackBottom = reinterpret_cast<Marker>(stack_address);
 	m_next = m_stackBottom;
+}
+
+allocs::stack_allocator::~stack_allocator()
+{
+	// free all allocated memory
+	free(reinterpret_cast<void*>(m_stackBottom));
 }
 
 void* allocs::stack_allocator::alloc(unsigned int sizeBytes) throw (std::bad_alloc)
@@ -52,7 +58,7 @@ void allocs::stack_allocator::clear()
 {
 	// Reset the top of the stack and reset any used bytes.
 	m_next = m_stackBottom;
-	m_sizeBytesRemaining = m_stackSizeBytes;
+	m_sizeBytesRemaining = m_capacityBytes;
 }
 
 // -------------------------------------------------------
@@ -60,7 +66,7 @@ void allocs::stack_allocator::clear()
 // -------------------------------------------------------
 
 allocs::de_stack_allocator::de_stack_allocator(const std::size_t stackSizeBytes) :
-	m_stackSizeBytes(stackSizeBytes),
+	m_capacityBytes(stackSizeBytes),
 	m_sizeBytesRemaining(stackSizeBytes)
 {
 	// Create a new stack of given stackSize and allocate memory;
@@ -71,6 +77,12 @@ allocs::de_stack_allocator::de_stack_allocator(const std::size_t stackSizeBytes)
 	m_nextBottom = m_stackBottom;
 	m_stackTop = m_stackBottom + stackSizeBytes;
 	m_nextTop = m_stackTop;
+}
+
+allocs::de_stack_allocator::~de_stack_allocator()
+{
+	// free all allocated memory
+	free(reinterpret_cast<void*>(m_stackBottom));
 }
 
 void* allocs::de_stack_allocator::alloc(unsigned int sizeBytes, bool fillBottom)
@@ -110,10 +122,37 @@ void* allocs::de_stack_allocator::alloc(unsigned int sizeBytes, bool fillBottom)
 	return address;
 }
 
+void allocs::de_stack_allocator::freeToMarker(Marker marker, bool rollBottom) 
+{
+	std::size_t difference = 0;
+
+	// Check if we want to roll back the top or bottom of the stack
+	// NOTE: Assumes the user knows where the address was allocated.
+	if (rollBottom)
+	{
+		// Find the difference between the given marker and the bottom of the stack.
+		difference = m_nextBottom - marker;
+
+		// Move the bottom of the stack to the given marker.
+		m_nextBottom = marker;
+	}
+	else
+	{
+		// Find the difference between the given marker and the top of the stack.
+		difference = marker - m_nextTop;
+
+		// Move the top of the stack to the newly freed space.
+		m_nextTop = m_nextTop + marker;
+	}
+
+	// Update the remaining bytes in the stack.
+	m_sizeBytesRemaining += difference;
+}
+
 void allocs::de_stack_allocator::clear()
 {
 	// Reset the top/bottom of the stack and reset any used bytes.
-	m_sizeBytesRemaining = m_stackSizeBytes;
+	m_sizeBytesRemaining = m_capacityBytes;
 	m_nextBottom = m_stackBottom;
 	m_nextTop = m_stackTop;
 }
@@ -121,6 +160,24 @@ void allocs::de_stack_allocator::clear()
 // -------------------------------------------------------
 // Pool Allocator -----------
 // -------------------------------------------------------
+
+allocs::pool_allocator::pool_allocator(const std::size_t poolSizeBytes, const std::size_t elementSizeBytes) :
+	m_capacityBytes(poolSizeBytes),
+	m_sizeBytesRemaining(poolSizeBytes),
+	m_elementSize(elementSizeBytes),
+	m_numElements(poolSizeBytes / elementSizeBytes)
+{
+	// Create a new stack of given stackSize and allocate memory;
+	void* stack_address = malloc(poolSizeBytes);
+
+	// Set the address location of the newly allocated pool.
+	m_poolAddress = reinterpret_cast<Marker>(stack_address);
+}
+
+allocs::pool_allocator::~pool_allocator()
+{
+
+}
 
 // -------------------------------------------------------
 // Linear Allocator -----------
