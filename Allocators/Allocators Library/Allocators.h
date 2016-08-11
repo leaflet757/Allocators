@@ -3,6 +3,9 @@
 #include <iostream>
 #include <new>
 
+// TODO: write class summaries
+//	All allocators have memory overhead
+
 namespace allocs
 {
 	// Stack Marker: Represents allocated address space in the stack.
@@ -16,7 +19,7 @@ namespace allocs
 		// Constructs a stack_allocator with the given total size.
 		explicit stack_allocator(const std::size_t stackSizeBytes);
 
-		// Free all allocated memory
+		// Release all allocated memory
 		~stack_allocator();
 
 		// Allocates a new block of data of given size from the top
@@ -54,7 +57,7 @@ namespace allocs
 		// Constructs a stack_allocator with the given total size.
 		explicit de_stack_allocator(const std::size_t stackSizeBytes);
 
-		// Free all allocated memory and destroy this object
+		// Releases all allocated memory and destroy this object
 		~de_stack_allocator();
 
 		// Allocates a new block of data of given size from the designated
@@ -98,12 +101,39 @@ namespace allocs
 		Marker m_nextTop;					// Next Free Slot on Top of Stakc.
 	};
 
+	class linear_allocator
+	{
+	public:
+		
+		explicit linear_allocator(const std::size_t sizeBytes);
+		
+		~linear_allocator();
+
+		void* alloc(std::size_t sizeBytes);
+
+		void clear();
+	
+	private:
+		Marker m_startAddress; 
+		const std::size_t m_capacityBytes;	// Size in bytes of the stack.
+		std::size_t m_sizeBytesRemaining;	// Remaining bytes in the stack.
+		Marker m_nextFreeAddress;
+	};
+
+	class free_list_allocator
+	{
+
+	};
+
 	class pool_allocator
 	{
 	public:
-		explicit pool_allocator(const std::size_t poolSizeBytes, 
-								const std::size_t elementSizeBytes);
+		explicit pool_allocator(const std::size_t elementSizeBytes,
+			const std::size_t numElements);
+
+		// Release all allocated memeory in the pool
 		~pool_allocator();
+
 	private:
 		Marker m_poolAddress;				// Location of the memory pool.
 		const std::size_t m_capacityBytes;	// Number of total bytes allocated.
@@ -113,11 +143,6 @@ namespace allocs
 	};
 
 	// TODO: alignedpool?
-
-	class linear_allocator
-	{
-
-	};
 
 	class scope_stack_allocator
 	{

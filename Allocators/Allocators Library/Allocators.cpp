@@ -158,31 +158,86 @@ void allocs::de_stack_allocator::clear()
 }
 
 // -------------------------------------------------------
+// Linear Allocator -----------
+// -------------------------------------------------------
+
+allocs::linear_allocator::linear_allocator(const std::size_t sizeBytes) :
+	m_capacityBytes(sizeBytes),
+	m_sizeBytesRemaining(sizeBytes)
+{
+	// Create a new stack of given stackSize and allocate memory;
+	void* linear_address = malloc(sizeBytes);
+
+	// Set the stack marker and update the top/bottom of the stack.
+	m_startAddress = reinterpret_cast<Marker>(linear_address);
+
+	// Set the first free addreses
+	m_nextFreeAddress = m_startAddress;
+}
+
+allocs::linear_allocator::~linear_allocator()
+{
+	// release all allocateed memory
+	free(reinterpret_cast<void*>(m_startAddress));
+}
+
+void* allocs::linear_allocator::alloc(std::size_t sizeBytes)
+{
+	// Check if there is enough memory to allocate
+	// If not, throw an allocation error
+	if (sizeBytes > m_sizeBytesRemaining)
+	{
+		std::bad_alloc exception;
+		throw exception;
+	}
+
+	// Get the free address
+	void* freeAddress = reinterpret_cast<void*>(m_nextFreeAddress);
+
+
+
+	// Update the remaining bytes
+	m_sizeBytesRemaining -= sizeBytes;
+}
+
+void allocs::linear_allocator::clear()
+{
+	m_sizeBytesRemaining = m_capacityBytes;
+
+	m_nextFreeAddress = m_startAddress;
+}
+
+// -------------------------------------------------------
+// Free List Allocator -----------
+// -------------------------------------------------------
+
+
+// -------------------------------------------------------
 // Pool Allocator -----------
 // -------------------------------------------------------
 
-allocs::pool_allocator::pool_allocator(const std::size_t poolSizeBytes, const std::size_t elementSizeBytes) :
-	m_capacityBytes(poolSizeBytes),
-	m_sizeBytesRemaining(poolSizeBytes),
+allocs::pool_allocator::pool_allocator(const std::size_t elementSizeBytes, const std::size_t numElements) :
+	m_capacityBytes(elementSizeBytes * numElements),
+	m_sizeBytesRemaining(m_capacityBytes),
 	m_elementSize(elementSizeBytes),
-	m_numElements(poolSizeBytes / elementSizeBytes)
+	m_numElements(numElements)
 {
 	// Create a new stack of given stackSize and allocate memory;
-	void* stack_address = malloc(poolSizeBytes);
+	void* pool_address = malloc(m_capacityBytes);
+
+	// TODO: difference between pool head and given address
+	//	divide by element size to get the index
+	//	free that index and place it back in the linked list
 
 	// Set the address location of the newly allocated pool.
-	m_poolAddress = reinterpret_cast<Marker>(stack_address);
+	m_poolAddress = reinterpret_cast<Marker>(pool_address);
 }
 
 allocs::pool_allocator::~pool_allocator()
 {
-
+	// free all allocated memeory
+	free(reinterpret_cast<void*>(m_poolAddress));
 }
-
-// -------------------------------------------------------
-// Linear Allocator -----------
-// -------------------------------------------------------
-
 
 // -------------------------------------------------------
 // Scope Stack Allocator -----------
