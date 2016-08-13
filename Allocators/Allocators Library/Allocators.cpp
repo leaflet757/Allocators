@@ -21,27 +21,6 @@ allocs::stack_allocator::~stack_allocator()
 	free(reinterpret_cast<void*>(m_stackBottom));
 }
 
-void* allocs::stack_allocator::alloc(unsigned int sizeBytes) throw (std::bad_alloc)
-{
-	// Check if there is enough memory to allocate
-	// If not, throw an allocation error
-	if (sizeBytes > m_sizeBytesRemaining)
-	{
-		std::bad_alloc exception;
-		throw exception;
-	}
-
-	// Cast the top of the stack as an addressable chunk of memory.
-	void* address = reinterpret_cast<void*>(m_next);
-
-	// Update the top of the stack.
-	m_next = m_next + sizeBytes;
-	// Update the remaining bytes in the stack.
-	m_sizeBytesRemaining -= sizeBytes;
-
-	return address;
-}
-
 void allocs::stack_allocator::freeToMarker(allocs::Marker marker)
 {
 	// Find the difference between the given marker and the top of the stack.
@@ -85,43 +64,6 @@ allocs::de_stack_allocator::~de_stack_allocator()
 	free(reinterpret_cast<void*>(m_stackBottom));
 }
 
-void* allocs::de_stack_allocator::alloc(unsigned int sizeBytes, bool fillBottom)
-{
-	// Check if there is enough memory to allocate
-	// If not, throw an allocation error
-	if (sizeBytes > m_sizeBytesRemaining)
-	{
-		std::bad_alloc exception;
-		throw exception;
-	}
-
-	void* address = 0; // init return address
-	if (fillBottom)
-	{
-		// Cast the bottom of the stack as an addressable chunk of memory.
-		address = reinterpret_cast<void*>(m_nextBottom);
-
-		// Update the Bottom of the stack.
-		m_nextBottom = m_nextBottom + sizeBytes;
-
-		// Update the remaining bytes in the stack.
-		m_sizeBytesRemaining -= sizeBytes;
-	}
-	else
-	{
-		// Update the Top of the stack.
-		m_nextTop = m_nextTop - sizeBytes;
-
-		// Cast the bottom of the stack as an addressable chunk of memory.
-		address = reinterpret_cast<void*>(m_nextTop);
-
-		// Update the remaining bytes in the stack.
-		m_sizeBytesRemaining -= sizeBytes;
-	}
-	
-	return address;
-}
-
 void allocs::de_stack_allocator::freeToMarker(Marker marker, bool rollBottom) 
 {
 	std::size_t difference = 0;
@@ -161,51 +103,51 @@ void allocs::de_stack_allocator::clear()
 // Linear Allocator -----------
 // -------------------------------------------------------
 
-allocs::linear_allocator::linear_allocator(const std::size_t sizeBytes) :
-	m_capacityBytes(sizeBytes),
-	m_sizeBytesRemaining(sizeBytes)
-{
-	// Create a new stack of given stackSize and allocate memory;
-	void* linear_address = malloc(sizeBytes);
-
-	// Set the stack marker and update the top/bottom of the stack.
-	m_startAddress = reinterpret_cast<Marker>(linear_address);
-
-	// Set the first free addreses
-	m_nextFreeAddress = m_startAddress;
-}
-
-allocs::linear_allocator::~linear_allocator()
-{
-	// release all allocateed memory
-	free(reinterpret_cast<void*>(m_startAddress));
-}
-
-void* allocs::linear_allocator::alloc(std::size_t sizeBytes)
-{
-	// Check if there is enough memory to allocate
-	// If not, throw an allocation error
-	if (sizeBytes > m_sizeBytesRemaining)
-	{
-		std::bad_alloc exception;
-		throw exception;
-	}
-
-	// Get the free address
-	void* freeAddress = reinterpret_cast<void*>(m_nextFreeAddress);
-
-
-
-	// Update the remaining bytes
-	m_sizeBytesRemaining -= sizeBytes;
-}
-
-void allocs::linear_allocator::clear()
-{
-	m_sizeBytesRemaining = m_capacityBytes;
-
-	m_nextFreeAddress = m_startAddress;
-}
+//allocs::linear_allocator::linear_allocator(const std::size_t sizeBytes) :
+//	m_capacityBytes(sizeBytes),
+//	m_sizeBytesRemaining(sizeBytes)
+//{
+//	// Create a new stack of given stackSize and allocate memory;
+//	void* linear_address = malloc(sizeBytes);
+//
+//	// Set the stack marker and update the top/bottom of the stack.
+//	m_startAddress = reinterpret_cast<Marker>(linear_address);
+//
+//	// Set the first free addreses
+//	m_nextFreeAddress = m_startAddress;
+//}
+//
+//allocs::linear_allocator::~linear_allocator()
+//{
+//	// release all allocateed memory
+//	free(reinterpret_cast<void*>(m_startAddress));
+//}
+//
+//void* allocs::linear_allocator::alloc(std::size_t sizeBytes)
+//{
+//	// Check if there is enough memory to allocate
+//	// If not, throw an allocation error
+//	if (sizeBytes > m_sizeBytesRemaining)
+//	{
+//		std::bad_alloc exception;
+//		throw exception;
+//	}
+//
+//	// Get the free address
+//	void* freeAddress = reinterpret_cast<void*>(m_nextFreeAddress);
+//
+//
+//
+//	// Update the remaining bytes
+//	m_sizeBytesRemaining -= sizeBytes;
+//}
+//
+//void allocs::linear_allocator::clear()
+//{
+//	m_sizeBytesRemaining = m_capacityBytes;
+//
+//	m_nextFreeAddress = m_startAddress;
+//}
 
 // -------------------------------------------------------
 // Free List Allocator -----------
@@ -220,17 +162,51 @@ allocs::pool_allocator::pool_allocator(const std::size_t elementSizeBytes, const
 	m_capacityBytes(elementSizeBytes * numElements),
 	m_sizeBytesRemaining(m_capacityBytes),
 	m_elementSize(elementSizeBytes),
-	m_numElements(numElements)
+	m_maxElements(numElements),
+	m_numElements(0)
 {
 	// Create a new stack of given stackSize and allocate memory;
 	void* pool_address = malloc(m_capacityBytes);
 
-	// TODO: difference between pool head and given address
-	//	divide by element size to get the index
-	//	free that index and place it back in the linked list
-
 	// Set the address location of the newly allocated pool.
 	m_poolAddress = reinterpret_cast<Marker>(pool_address);
+
+	// Set all the free elements in the free list
+	clear();
+
+#ifdef _DEBUG
+	printf("The address of the pool is: %p\n", pool_address);
+	for (int i = 0; i < 4; ++i)
+	{
+		printf("The value of address(%d) is: %p\n", m_freeList[i], m_freeList[i]);
+	}
+#endif
+}
+
+void allocs::pool_allocator::clear() 
+{
+	// Save all free addresses as a linked list in the pool
+	m_freeList = reinterpret_cast<void**>(m_poolAddress);
+
+	// Point to the head of the list
+	void** p = m_freeList;
+	
+	// Iterate through the number of elements, setting each one to the next
+	for (int i = 0; i < m_maxElements; ++i)
+	{
+		// Set the value of p to point to the next free address space
+		*p = reinterpret_cast<void**>(reinterpret_cast<Marker>(p) + m_elementSize);
+		
+		// Set p to the address of the newly added address space.
+		p = static_cast<void**>(*p);
+	}
+	// Set the last element in the list to point at nothing
+	*p = nullptr;
+
+	// Set the number of elements in the stack to zero
+	// and reset the bytes remaining.
+	m_numElements = 0;
+	m_sizeBytesRemaining = m_capacityBytes;
 }
 
 allocs::pool_allocator::~pool_allocator()
