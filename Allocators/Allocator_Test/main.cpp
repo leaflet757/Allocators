@@ -52,7 +52,7 @@ int main(char** argv, int argc)
 	std::cout << "Filling all bytes..." << std::endl;
 	for (int i = 0; i < MEM_SIZE; ++i)
 	{
-		stack.alloc<char>();
+		//stack.alloc<char>();
 	}
 
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
@@ -69,6 +69,7 @@ int main(char** argv, int argc)
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 	printf("Address of int*: %p\nValue of int*: %d\n", intp, *intp);
+	std::cout << allocs::is_aligned(intp, sizeof(int)) << std::endl;
 	
 	float* fp = stack.alloc<float>();
 	*fp = 1000.324f;
@@ -77,6 +78,7 @@ int main(char** argv, int argc)
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 	printf("Address of float*: %p\nValue of float*: %f\n", fp, *fp);
+	std::cout << allocs::is_aligned(fp, sizeof(float)) << std::endl;
 
 	stuff* thing = stack.alloc<stuff>();
 	thing->one = 20;
@@ -87,6 +89,7 @@ int main(char** argv, int argc)
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 	printf("Address of stuff*: %p\nValue of stuff* one: %d\nValue of stuff* two: %d\n", thing, thing->one, thing->two);
 	printf("Address of stuff*: %p\nAddress of stuff* one: %p\nAddress of stuff* two: %p\n", thing, &(thing->one), &(thing->two));
+	std::cout << allocs::is_aligned(thing, sizeof(stuff)) << std::endl;
 
 	std::cout << "Free-ing memory to float pointer..." << std::endl;
 	stack.freeToMarker((allocs::Marker)fp);
@@ -105,6 +108,7 @@ int main(char** argv, int argc)
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 	printf("Address of stuff*: %p\nValue of stuff* three: %f\nValue of stuff* four: %d\n", thing2, thing2->three, thing2->four.two);
+	std::cout << allocs::is_aligned(thing2, sizeof(stuff2)) << std::endl;
 
 	// -----------------------------------------------
 	// ----- Stack alloc test -----

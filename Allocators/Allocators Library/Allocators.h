@@ -6,61 +6,104 @@
 // TODO: write class summaries
 //	All allocators have memory overhead
 
+// TODO: all allocations need to return aligned addressses
+// TODO: explain alignment functions
+// TODO: test correctness of alignment functions
+
 namespace allocs
 {
-	// Stack Marker: Represents allocated address space in the stack.
-	// You can only pop back to a Marker, not to arbitrary locations
-	// within the stack.
-	typedef unsigned int Marker;
-
-	/*class base_allocator
+	/**
+	* Checks if the given pointer is memory aligned based on the current hardware.
+	* 
+	* @param pointer Address to check.
+	* @param byte_count The number of bytes based off the type of the pointer.
+	*/
+	inline bool is_aligned(const void* __restrict pointer, std::size_t byte_count)
 	{
-	public:
-		~base_allocator() { }
+#ifdef _DEBUG
+		std::cout << (uintptr_t)pointer << "  " << byte_count << std::endl;
+#endif
 
-	protected:
-		base_allocator(const std::size_t sizeBytes) :
-			m_allocatorCapacity(sizeBytes), 
-			m_remainingBytes(sizeBytes), 
-			m_numAllocations(0)
-		{ }
+		return (uintptr_t)pointer % byte_count == 0;
+	};
 
-		virtual void* alloc() = 0;
+	// Aligns the address based on the alignment
+	inline void* alignForward(void * address, uint16_t alignment) 
+	{
+		return (void*)((reinterpret_cast<uintptr_t>(address) 
+			+ static_cast<uintptr_t>(alignment - 1)) & static_cast<uintptr_t>(~(alignment - 1)));
+	}
 
-		virtual void free(void* pointer) = 0;
+	// returns the number of bytes needed to align the address
+	inline uint16_t alignForwardAdjustment(const void * address, uint16_t alignment)
+	{
+		uint16_t adjustment = alignment 
+			- (reinterpret_cast<uintptr_t>(address) & static_cast<uintptr_t>(alignment - 1));
 
-		void* m_allocatorAddresss;
-		const std::size_t m_allocatorCapacity;
-		std::size_t m_remainingBytes;
-		std::size_t m_numAllocations;
+		if (adjustment == alignment) return 0; // already aligned
 
-	private:
-		base_allocator(base_allocator const &) = delete;
-		base_allocator& operator=(base_allocator const &) = delete;
-	};*/
+		return adjustment;
+	}
 
-	// TODO: all allocations need to return aligned addressses
+	inline uint16_t alignForwardAdjustmentWithHeader(const void * address, uint16_t alignment, uint16_t headerSize)
+	{
+		uint16_t adjustment = alignForwardAdjustment(address, alignment);
+		uint16_t requiredSpace = headerSize;
+
+		if (adjustment < requiredSpace)
+		{
+			requiredSpace -= adjustment;
+			adjustment += alignment * (requiredSpace / alignment);
+
+			if (requiredSpace % alignment > 0) adjustment += alignment;
+		}
+	
+		return adjustment;
+	}
+
+	/**
+	* Stack Marker: Represents allocated address space in the stack.
+	*
+	* You can only pop back to a Marker, not to arbitrary locations
+	* within the stack.
+	*/ 
+	typedef std::uintptr_t Marker;
 
 	class stack_allocator
 	{
 	public:
-		// Constructs a stack_allocator with the given total size.
+		/** 
+		* Constructs a stack_allocator with the given total size.
+		* 
+		* @param stackSizeBytes The number of bytes to pre-allocate
+		* for this allocator.
+		*/
 		explicit stack_allocator(const std::size_t stackSizeBytes);
 
-		// Release all allocated memory
+		/** 
+		* Release all allocated memory.
+		*/
 		~stack_allocator();
 
-		// Allocates a new block of data of given size from the top
-		// of the stack.
+		/**
+		* Allocates a new block of data of given size based on the template
+		* type. This data is then placed on the top of the stack.
+		*/
 		template <typename T> T* alloc()
 		{
 			// Get the size of the specified type.
 			const std::size_t sizeBytesT = sizeof(T);
 
+			const std::size_t alignment = alignof(T);
+			const std::size_t adjustment = alignForwardAdjustment(reinterpret_cast<void*>(m_next), alignment);
+
 			// Check if there is enough memory to allocate
 			// If not, throw an allocation error
-			if (sizeBytesT > m_sizeBytesRemaining)
+			if (sizeBytesT + adjustment > m_sizeBytesRemaining)
 			{
+				std::cerr << "Note enough memory in stack: " << this << "\nSize Remaining: " 
+					<< m_sizeBytesRemaining << "\nSize Requested: " << sizeBytesT 
+					<< std::endl;
 				std::bad_alloc exception;
 				throw exception;
 			}
@@ -76,35 +119,50 @@ namespace allocs
 			return static_cast<T*>(address);
 		}
 
-		// Returns the Marker to the address the stack is stored.
+		/**
+		* Returns the Marker to the address the stack is stored.
+		*/
 		const void* getStackAddress() 
 		{
 			return reinterpret_cast<void*>(m_stackBottom); 
 		}
 
-		// Returns a Marker to the top of the stack.
+		/** 
+		* Returns a Marker to the top of the stack.
+		*/
 		const Marker getStackTop() { return m_next; }
 
-		// Returns the total capacity of the stack in size of bytes.
+		/**
+		* Returns the total capacity of the stack in size of bytes.
+		*/
 		const std::size_t getStackCapacity() { return m_capacityBytes; }
 
-		// Returns the total remaining bytes within the stack.
+		/**
+		* Returns the total remaining bytes within the stack.
+		*/
 		const std::size_t getRemainingStackSize() { return m_sizeBytesRemaining; }
 
-		// Rolls the stack back to the given marker.
+		/**
+		* Rolls the stack back to the given marker. NOTE: The function does
+		* not check if the marker is valid.
+		* 
+		* @param marker The designated address to pop the stack back too.
+		*/
 		void freeToMarker(Marker marker);
 
-		// Clears the entire stack.
+		/**
+		* Clears the entire stack.
+		*/
 		void clear();
 
 	private:
-		const std::size_t m_capacityBytes;	// Size in bytes of the stack.
-		std::size_t m_sizeBytesRemaining;	// Remaining bytes in the stack.
-		Marker m_stackBottom;				// Stack Marker.
-		Marker m_next;						// Top of the stack.
+		const std::size_t m_capacityBytes;	//!< Size in bytes of the stack.
+		std::size_t m_sizeBytesRemaining;	//!< Remaining bytes in the stack.
+		Marker m_stackBottom;				//!< Stack Marker.
+		Marker m_next;						//!< Top of the stack.
 
-		stack_allocator();					// Do not allow default constructor.
-											// Or copy constructors.
+		stack_allocator();					//!< Do not allow default constructor
+											//!< or copy constructors.
 		stack_allocator(stack_allocator const &) = delete;
 		stack_allocator& operator=(stack_allocator const &) = delete;
 	};
@@ -112,16 +170,28 @@ namespace allocs
 	class de_stack_allocator
 	{
 	public:
-		// Constructs a stack_allocator with the given total size.
+		/** 
+		* Constructs a stack_allocator with the given total size.
+		*
+		* @param stackSizeBytes The number of bytes to pre-allocate for
+		* this allocator.
+		*/
 		explicit de_stack_allocator(const std::size_t stackSizeBytes);
 
-		// Releases all allocated memory and destroy this object
+		/**
+		* Releases all allocated memory and destroy this object
+		*/
 		~de_stack_allocator();
 
-		// Allocates a new block of data of given size from the designated
-		// fill direction of the stack. If the fillBottom parameter is
-		// not passed, then this allocator functions as a regular stack
-		// allocator.
+		/**
+		* Allocates a new block of data of given size from the designated
+		* fill direction of the stack. If the fillBottom parameter is
+		* not passed, then this allocator functions as a regular stack
+		* allocator.
+		*
+		* @param fillBottom True fills the allocator from bottom to top
+		* while False fills the allocator top to bottom.
+		*/
 		template <typename T> T* alloc(bool fillBottom = true)
 		{
 			// Get the size of the specified type
@@ -162,30 +232,51 @@ namespace allocs
 			return static_cast<T*>(address);
 		}
 
-		// Returns the Marker to the address the stack is stored.
+		/**
+		* Returns the Marker to the address the stack is stored.
+		*/
 		const Marker getStackAddressMarker() { return m_stackBottom; }
 
-		// Returns the Marker to last address avaiable in the stack.
+		/**
+		* Returns the Marker to last address avaiable in the stack.
+		*/
 		const Marker getTopStackAddressMarker() { return m_stackTop; }
 
-		// Returns the next free address Marker on the bottom of the stack.
+		/** 
+		* Returns the next free address Marker on the bottom of the stack.
+		*/
 		const Marker getStackBottom() { return m_nextBottom; }
 
-		// Returns next free address Marker on the top of the stack.
+		/**
+		* Returns next free address Marker on the top of the stack.
+		*/
 		const Marker getStackTop() { return m_nextTop; }
 
-		// Returns the total capacity of the stack in size of bytes.
+		/**
+		* Returns the total capacity of the stack in size of bytes.
+		*/
 		const std::size_t getStackCapacity() { return m_capacityBytes; }
 
-		// Returns the total remaining bytes within the stack.
+		/** 
+		* Returns the total remaining bytes within the stack.
+		*/
 		const std::size_t getRemainingStackSize() { return m_sizeBytesRemaining; }
 
-		// Rolls the top or bottom of the stack back to the the given marker.
-		// Rolls the bottom of the stack by default unless rollBottom is set
-		// as false.
+		/**
+		* Rolls the top or bottom of the stack back to the the given marker.
+		* Rolls the bottom of the stack by default unless rollBottom is set
+		* as false. NOTE: This function does not check the validity of the 
+		* marker.
+		* 
+		* @param marker The designated marker to pop the stack back to.
+		* @param rollBottom Specifies to pop the stack towards the bottom or
+		* the top.
+		*/
 		void freeToMarker(Marker marker, bool rollBottom = true);
 
-		// Clears the entire stack.
+		/**
+		* Clears the entire stack.
+		*/
 		void clear();
 
 	private:
