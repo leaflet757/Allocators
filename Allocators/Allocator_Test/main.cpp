@@ -14,7 +14,7 @@ struct stuff2
 	stuff four;
 	int one;
 	int two;
-	float three;
+	double three;
 };
 
 class SomeClass
@@ -69,7 +69,7 @@ int main(char** argv, int argc)
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 	printf("Address of int*: %p\nValue of int*: %d\n", intp, *intp);
-	std::cout << allocs::is_aligned(intp, sizeof(int)) << std::endl;
+	std::cout << allocs::is_aligned(intp) << std::endl;
 	
 	float* fp = stack.alloc<float>();
 	*fp = 1000.324f;
@@ -78,18 +78,18 @@ int main(char** argv, int argc)
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 	printf("Address of float*: %p\nValue of float*: %f\n", fp, *fp);
-	std::cout << allocs::is_aligned(fp, sizeof(float)) << std::endl;
+	std::cout << allocs::is_aligned(fp) << std::endl;
 
 	stuff* thing = stack.alloc<stuff>();
 	thing->one = 20;
 	thing->two = 30;
 	
-	std::cout << "Allocating struct with sizeof(12)... " << std::endl;
+	std::cout << "Allocating struct with sizeof(" << sizeof(stuff) << ")... " << std::endl;
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 	printf("Address of stuff*: %p\nValue of stuff* one: %d\nValue of stuff* two: %d\n", thing, thing->one, thing->two);
 	printf("Address of stuff*: %p\nAddress of stuff* one: %p\nAddress of stuff* two: %p\n", thing, &(thing->one), &(thing->two));
-	std::cout << allocs::is_aligned(thing, sizeof(stuff)) << std::endl;
+	std::cout << allocs::is_aligned(thing) << std::endl;
 
 	std::cout << "Free-ing memory to float pointer..." << std::endl;
 	stack.freeToMarker((allocs::Marker)fp);
@@ -100,18 +100,18 @@ int main(char** argv, int argc)
 	stuff2* thing2 = stack.alloc<stuff2>();
 	thing2->one = 40;
 	thing2->two = 50;
-	thing2->three = 60;
+	thing2->three = 60.2345;
 	thing2->four.one = 70;
 	thing2->four.two = 75;
 
-	std::cout << "Allocating struct with sizeof(24)... " << std::endl;
+	std::cout << "Allocating struct with sizeof(" << sizeof(stuff2) << "... " << std::endl;
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
-	printf("Address of stuff*: %p\nValue of stuff* three: %f\nValue of stuff* four: %d\n", thing2, thing2->three, thing2->four.two);
-	std::cout << allocs::is_aligned(thing2, sizeof(stuff2)) << std::endl;
+	printf("Address of stuff2*: %p\nValue of stuff2* three: %f\nValue of stuff2* four: %d\n", thing2, thing2->three, thing2->four.two);
+	std::cout << allocs::is_aligned(thing2) << std::endl;
 
 	// -----------------------------------------------
-	// ----- Stack alloc test -----
+	// ----- DOuble Stack alloc test -----
 	//------------------------------------------------
 
 	std::cout << "-------------------------------" << std::endl
@@ -157,6 +157,7 @@ int main(char** argv, int argc)
 	std::cout << "de_stack Size is: " << de_stack.getRemainingStackSize() << std::endl;
 	std::cout << "de_stack Capacity is: " << de_stack.getStackCapacity() << std::endl;
 	printf("Address of stuff*: %p\nValue of stuff* one: %d\nValue of stuff* two: %d\n", thing, thing->one, thing->two);
+	std::cout << allocs::is_aligned(thing) << std::endl;
 
 	std::cout << "Free-ing memory to float pointer..." << std::endl;
 	de_stack.freeToMarker((allocs::Marker)fp, false);
@@ -175,6 +176,7 @@ int main(char** argv, int argc)
 	std::cout << "de_stack Size is: " << de_stack.getRemainingStackSize() << std::endl;
 	std::cout << "de_stack Capacity is: " << de_stack.getStackCapacity() << std::endl;
 	printf("Address of stuff*: %p\nValue of stuff* three: %f\nValue of stuff* four.two: %d\n", thing2, thing2->three, thing2->four.two);
+	std::cout << allocs::is_aligned(thing2) << std::endl;
 
 	// -----------------------------------------------
 	// ----- Pool alloc test -----

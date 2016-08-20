@@ -7,8 +7,8 @@
 //	All allocators have memory overhead
 
 // TODO: all allocations need to return aligned addressses
-// TODO: explain alignment functions
-// TODO: test correctness of alignment functions
+
+// deallocate with adjustment header
 
 namespace allocs
 {
@@ -16,38 +16,42 @@ namespace allocs
 	* Checks if the given pointer is memory aligned based on the current hardware.
 	* 
 	* @param pointer Address to check.
-	* @param byte_count The number of bytes based off the type of the pointer.
+	* @param n The alignment specified by TYPE.
 	*/
-	inline bool is_aligned(const void* __restrict pointer, std::size_t byte_count)
+	template <typename TYPE>
+	inline bool is_aligned(TYPE * p, std::size_t n = alignof(TYPE))
 	{
-#ifdef _DEBUG
-		std::cout << (uintptr_t)pointer << "  " << byte_count << std::endl;
-#endif
+		return 0 == reinterpret_cast<uintptr_t>(p) % n;
+	}
 
-		return (uintptr_t)pointer % byte_count == 0;
-	};
-
-	// Aligns the address based on the alignment
+	/**
+	* Aligns the address based in the given alignment by masking off log2(x) least 
+	* significant bits from alignment-1, then adding that result to the address.
+	*
+	* @param address The address that will be changed to an aligned address.
+	* @param alignment The alignment relative to the type of address.
+	*/
 	inline void* alignForward(void * address, uint16_t alignment) 
 	{
 		return (void*)((reinterpret_cast<uintptr_t>(address) 
 			+ static_cast<uintptr_t>(alignment - 1)) & static_cast<uintptr_t>(~(alignment - 1)));
 	}
 
-	// returns the number of bytes needed to align the address
-	inline uint16_t alignForwardAdjustment(const void * address, uint16_t alignment)
+	/**
+	* Returns the number of bytes needed to align the address based on its alignment
+	* and optional overhead header size.
+	*
+	* @param address The address that will be changed to an aligned address.
+	* @param alignment The alignment relative to the type of address.
+	* @param headerSize Option overhead header size specification.
+	*/
+	inline uint16_t alignForwardAdjustment(const void * address, uint16_t alignment, uint16_t headerSize = 0)
 	{
 		uint16_t adjustment = alignment 
 			- (reinterpret_cast<uintptr_t>(address) & static_cast<uintptr_t>(alignment - 1));
+		
+		adjustment = adjustment == alignment ? 0 : adjustment;
 
-		if (adjustment == alignment) return 0; // already aligned
-
-		return adjustment;
-	}
-
-	inline uint16_t alignForwardAdjustmentWithHeader(const void * address, uint16_t alignment, uint16_t headerSize)
-	{
-		uint16_t adjustment = alignForwardAdjustment(address, alignment);
 		uint16_t requiredSpace = headerSize;
 
 		if (adjustment < requiredSpace)
@@ -62,6 +66,15 @@ namespace allocs
 	}
 
 	/**
+	* alloc_header: Used to keep track of memory alignment overhead when 
+	* allocating varrying data types.
+	*/
+	struct alloc_header
+	{
+		char alignment = 0;
+	};
+
+	/**
 	* Stack Marker: Represents allocated address space in the stack.
 	*
 	* You can only pop back to a Marker, not to arbitrary locations
@@ -69,6 +82,9 @@ namespace allocs
 	*/ 
 	typedef std::uintptr_t Marker;
 
+	/**
+	* TODO:
+	*/
 	class stack_allocator
 	{
 	public:
@@ -94,8 +110,7 @@ namespace allocs
 			// Get the size of the specified type.
 			const std::size_t sizeBytesT = sizeof(T);
 
-			const std::size_t alignment = alignof(T);
-			const std::size_t adjustment = alignForwardAdjustment(reinterpret_cast<void*>(m_next), alignment);
+			const std::size_t adjustment = alignForwardAdjustment(reinterpret_cast<void*>(m_next), alignof(T));
 
 			// Check if there is enough memory to allocate
 			// If not, throw an allocation error
@@ -109,12 +124,12 @@ namespace allocs
 			}
 
 			// Cast the top of the stack as an addressable chunk of memory.
-			void* address = reinterpret_cast<void*>(m_next);
+			void* address = reinterpret_cast<void*>(m_next + adjustment);
 
 			// Update the top of the stack.
-			m_next = m_next + sizeBytesT;
+			m_next = m_next + sizeBytesT + adjustment;
 			// Update the remaining bytes in the stack.
-			m_sizeBytesRemaining -= sizeBytesT;
+			m_sizeBytesRemaining -= (sizeBytesT + adjustment);
 
 			return static_cast<T*>(address);
 		}
@@ -167,6 +182,9 @@ namespace allocs
 		stack_allocator& operator=(stack_allocator const &) = delete;
 	};
 
+	/**
+	* TODO:
+	*/
 	class de_stack_allocator
 	{
 	public:
@@ -197,22 +215,29 @@ namespace allocs
 			// Get the size of the specified type
 			const std::size_t sizeBytesT = sizeof(T);
 
+			const std::size_t adjustment = alignForwardAdjustment(reinterpret_cast<void*>(m_nextBottom), alignof(T)); // next bottom or top doens't matter
+
+			const std::size_t adjustment2 = alignForwardAdjustment(reinterpret_cast<void*>(m_nextTop), alignof(T)); // next bottom or top doens't matter
+
+
 			// Check if there is enough memory to allocate
 			// If not, throw an allocation error
-			if (sizeBytesT > m_sizeBytesRemaining)
+			if (sizeBytesT + adjustment > m_sizeBytesRemaining)
 			{
 				std::bad_alloc exception;
 				throw exception;
 			}
 
+			// TODO: add alignment adjustment here
+
 			void* address = 0; // init return address
 			if (fillBottom)
 			{
 				// Cast the bottom of the stack as an addressable chunk of memory.
-				address = reinterpret_cast<void*>(m_nextBottom);
+				address = reinterpret_cast<void*>(m_nextBottom + adjustment);
 
 				// Update the Bottom of the stack.
-				m_nextBottom = m_nextBottom + sizeBytesT;
+				m_nextBottom = m_nextBottom + sizeBytesT + adjustment;
 
 				// Update the remaining bytes in the stack.
 				m_sizeBytesRemaining -= sizeBytesT;
