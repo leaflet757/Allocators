@@ -21,18 +21,6 @@ allocs::stack_allocator::~stack_allocator()
 	free(reinterpret_cast<void*>(m_stackBottom));
 }
 
-void allocs::stack_allocator::freeToMarker(allocs::Marker marker)
-{
-	// Find the difference between the given marker and the top of the stack.
-	std::size_t difference = m_next - marker;
-	
-	// Move the top of the stack to the given marker.
-	m_next = marker;
-
-	// Update the remaining bytes in the stack.
-	m_sizeBytesRemaining += difference;
-}
-
 void allocs::stack_allocator::clear()
 {
 	// Reset the top of the stack and reset any used bytes.

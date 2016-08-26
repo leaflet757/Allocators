@@ -6,9 +6,12 @@
 // TODO: write class summaries
 //	All allocators have memory overhead
 
-// TODO: all allocations need to return aligned addressses
+// fix warnings
 
-// deallocate with adjustment header
+// deallocate with adjustment header: stack allocator
+
+// add header alloc to double stack
+// add header dealloc to double stack
 
 namespace allocs
 {
@@ -71,7 +74,7 @@ namespace allocs
 	*/
 	struct alloc_header
 	{
-		char alignment = 0;
+		char adjustment = 0;
 	};
 
 	/**
@@ -126,6 +129,13 @@ namespace allocs
 			// Cast the top of the stack as an addressable chunk of memory.
 			void* address = reinterpret_cast<void*>(m_next + adjustment);
 
+			// Add allocation header if adjustment is needed
+			if (adjustment > 0)
+			{
+				alloc_header* headerAddress = reinterpret_cast<alloc_header*>(m_next + adjustment - 1);
+				headerAddress->adjustment = adjustment;
+			}
+
 			// Update the top of the stack.
 			m_next = m_next + sizeBytesT + adjustment;
 			// Update the remaining bytes in the stack.
@@ -163,7 +173,30 @@ namespace allocs
 		* 
 		* @param marker The designated address to pop the stack back too.
 		*/
-		void freeToMarker(Marker marker);
+		template <typename T> void freeToMarker(T * address)
+		{
+			Marker marker = reinterpret_cast<Marker>(address);
+
+			std::cout << typeid(marker - 1).name() << std::endl;
+
+			alloc_header * headerAddress = static_cast<alloc_header*>((void*)(marker - 1));
+
+			uint8_t adjustment; // TODO: check if this works on other pointers that require alignment. 
+
+			if (headerAddress)
+			{
+				adjustment = headerAddress->adjustment;
+			}
+
+			// Find the difference between the given marker and the top of the stack.
+			std::size_t difference = m_next - (marker + adjustment);
+
+			// Move the top of the stack to the given marker.
+			m_next = marker;
+
+			// Update the remaining bytes in the stack.
+			m_sizeBytesRemaining += difference + adjustment;
+		}
 
 		/**
 		* Clears the entire stack.

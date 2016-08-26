@@ -21,7 +21,6 @@ class SomeClass
 {
 public:
 	SomeClass() : one(4) {}
-	SomeClass(int param) : one(param) {}
 	~SomeClass() {}
 	void print()
 	{
@@ -48,12 +47,6 @@ int main(char** argv, int argc)
 	std::cout << "Begin Stack Allocation Test...." << std::endl 
 		<< "-------------------------------" << std::endl;
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
-
-	std::cout << "Filling all bytes..." << std::endl;
-	for (int i = 0; i < MEM_SIZE; ++i)
-	{
-		//stack.alloc<char>();
-	}
 
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 
@@ -91,24 +84,34 @@ int main(char** argv, int argc)
 	printf("Address of stuff*: %p\nAddress of stuff* one: %p\nAddress of stuff* two: %p\n", thing, &(thing->one), &(thing->two));
 	std::cout << allocs::is_aligned(thing) << std::endl;
 
-	std::cout << "Free-ing memory to float pointer..." << std::endl;
-	stack.freeToMarker((allocs::Marker)fp);
+	std::cout << "Free-ing memory to stuff pointer..." << std::endl;
+	stack.freeToMarker(thing);
 
 	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
 	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
 
-	stuff2* thing2 = stack.alloc<stuff2>();
-	thing2->one = 40;
-	thing2->two = 50;
-	thing2->three = 60.2345;
-	thing2->four.one = 70;
-	thing2->four.two = 75;
+	stuff2* thing2;
 
-	std::cout << "Allocating struct with sizeof(" << sizeof(stuff2) << "... " << std::endl;
-	std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
-	std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
-	printf("Address of stuff2*: %p\nValue of stuff2* three: %f\nValue of stuff2* four: %d\n", thing2, thing2->three, thing2->four.two);
-	std::cout << allocs::is_aligned(thing2) << std::endl;
+	for (int i = 0; i < 4; ++i)
+	{
+		stack.alloc<char>();
+
+		stuff2* thing2 = stack.alloc<stuff2>();
+		thing2->one = 40;
+		thing2->two = 50;
+		thing2->three = 60.2345;
+		thing2->four.one = 70;
+		thing2->four.two = 75;
+
+		std::cout << i << ":: Allocating struct with sizeof(" << sizeof(stuff2) << "... " << std::endl;
+		std::cout << "Stack Size is: " << stack.getRemainingStackSize() << std::endl;
+		std::cout << "Stack Capacity is: " << stack.getStackCapacity() << std::endl;
+		printf("Address of stuff2*: %p\nValue of stuff2* three: %f\nValue of stuff2* four: %d\n", thing2, thing2->three, thing2->four.two);
+		std::cout << allocs::is_aligned(thing2) << std::endl;
+		stack.freeToMarker(thing2);
+
+
+	}
 
 	// -----------------------------------------------
 	// ----- DOuble Stack alloc test -----
@@ -118,7 +121,7 @@ int main(char** argv, int argc)
 		<< "Begin double stack allocation test..." << std::endl
 		<< "---------------------------------" << std::endl;
 
-	allocs::de_stack_allocator de_stack(MEM_SIZE);
+	/*allocs::de_stack_allocator de_stack(MEM_SIZE);
 
 	std::cout << "Filling all bytes..." << std::endl;
 	for (int i = 0; i < MEM_SIZE; ++i)
@@ -176,7 +179,7 @@ int main(char** argv, int argc)
 	std::cout << "de_stack Size is: " << de_stack.getRemainingStackSize() << std::endl;
 	std::cout << "de_stack Capacity is: " << de_stack.getStackCapacity() << std::endl;
 	printf("Address of stuff*: %p\nValue of stuff* three: %f\nValue of stuff* four.two: %d\n", thing2, thing2->three, thing2->four.two);
-	std::cout << allocs::is_aligned(thing2) << std::endl;
+	std::cout << allocs::is_aligned(thing2) << std::endl;*/
 
 	// -----------------------------------------------
 	// ----- Pool alloc test -----
